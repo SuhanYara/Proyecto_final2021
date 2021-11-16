@@ -1,0 +1,568 @@
+---
+title: "Proyecto_Final"
+author: "Suhan_Juárez"
+date: "11/16/2021"
+output: 
+  html_document: 
+    toc: yes
+    theme: flatly
+    number_sections: yes
+---
+## Transcribir ADN a ARN
+*Ejercicio a resolver*: A partir de una secuencia de al menos 1000 pb se debe Transcribir de ADN a ARN.
+
+El problema implica sustituir la Timina, sólo en el ADN por Uracilo en ARN.
+Vamos a empezar con una cadena pequeña que contenga las cuatro bases, en un primer ejemplo:
+
+```{r}
+library(Biostrings)
+A<-DNAString("AGCT")
+A
+```
+
+Ahora la transformamos en un vector para trabajar con ella, ya que sino se leerá como cadena de ADN del paquete.
+
+```{r}
+A<-as.vector(A)
+class(A)  #Revisamos sus características
+length(A) #Tamaño
+A
+```
+
+Aquí hay una característica importante, ya que la secuencia se tomó desde un programa base ya tiene niveles definidos...
+```{r}
+levels(A)
+```
+
+Si deseamos reemplzar T por U, éste último no se encuentra en los niveles y no lo reemplzará.
+Por ello vamos a agregar ese nivel con el siguiente código:
+
+```{r}
+levels(A)<-c(levels(A),"U")
+levels(A)
+```
+
+Ya que lo tenemos agregado, vamos a usar which para conocer la posición de las T en el vector.
+Y lo guardamos en un objeto.
+```{r}
+Tpos<-which(A=="T")
+Tpos
+```
+
+Ahora simplmente usamos la función replace para sutituirlo y listo
+
+```{r}
+replace(A,Tpos,"U")
+```
+
+Ahora vamos a usar una secuencia de nucleotidos bajada del NCBI, de una especie de Bacillus con los 1000 nucleotidos.
+En secuencias grandes, por el tipo de datos, no se puede aplicar lo anterior, por ello, se puede unar una simple función de sustitución.
+
+```{r}
+SeqBacillus<-readDNAStringSet("01_Raw_Data/Bacillus_pseudomycoides.fasta")
+SeqBacillus
+RNABacillus<-gsub("T","U",SeqBacillus)
+RNABacillus
+```
+
+
+## Transcribir RNA en proteina
+*Ejercicio a resolver*: A partir de una secuencia de ARN Transcribir a proteína.
+
+Usamos la siguiente secuencia:
+
+```{r}
+Mirounga<-readDNAStringSet("01_Raw_Data/Mirounga_MYD88.fasta")
+Mirounga<-as.matrix(Mirounga)
+Mirounga<-as.vector(Mirounga)
+Mirounga
+
+
+RNAMirounga<-gsub("T","U",Mirounga)
+RNAMirounga
+```
+
+NOTA: Se transform los datos para poder acceder y trabajar con ellos
+
+Haremos VECTORES que corresponden a los codones para poder trabajar con los datos de la secuencia y que se comparen
+
+```{r}
+F1<-c("U","U","U")
+F2<-c("U","U","C")
+L1<-c("U","U","A")
+L2<-c("U","U","G")
+L3<-c("C","U","U")
+L4<-c("C","U","C")
+L5<-c("C","U","A")
+L6<-c("C","U","G")
+I1<-c("A","U","U")
+I2<-c("A","U","C")
+I3<-c("A","U","A")
+M1<-c("A","U","G")
+V1<-c("G","U","U")
+V2<-c("C","C","C")
+V3<-c("G","U","A")
+V4<-c("G","U","G")
+S1<-c("U","C","U")
+S2<-c("G","U","C")
+S3<-c("U","C","A")
+S4<-c("U","C","G")
+P1<-c("C","C","U")
+P2<-c("C","C","C")
+P3<-c("C","C","A")
+P4<-c("C","C","G")
+T1<-c("A","C","U")
+T2<-c("A","C","C")
+T3<-c("A","C","A")
+T4<-c("A","C","G")
+A1<-c("G","C","U")
+A2<-c("G","C","C")
+A3<-c("G","C","A")
+A4<-c("G","C","G")
+Y1<-c("U","A","U")
+Y2<-c("U","A","C")
+STOP1<-c("U","A","A")
+STOP2<-c("U","A","G")
+STOP3<-c("U","G","A")
+H1<-c("C","A","U")
+H2<-c("C","A","C")
+Q1<-c("C","A","A")
+Q2<-c("C","A","G")
+N1<-c("A","A","U")
+N2<-c("A","A","C")
+K1<-c("A","A","A")
+K2<-c("A","A","G")
+D1<-c("G","A","U")
+D2<-c("G","A","C")
+E1<-c("G","A","A")
+E2<-c("G","A","G")
+C1<-c("U","G","U")
+C2<-c("U","A","C")
+W1<-c("U","G","G")
+R1<-c("C","G","U")
+R2<-c("C","G","C")
+R3<-c("C","G","A")
+R4<-c("C","G","G")
+R5<-c("A","G","A")
+R6<-c("A","G","G")
+S1<-c("A","G","U")
+S2<-c("A","G","C")
+G1<-c("G","G","U")
+G2<-c("G","G","C")
+G3<-c("G","G","A")
+G4<-c("G","G","G")
+```
+
+Fragmentamos RNAMirounga para que cada codón sea leído y reemplazado por el aa correspondiente
+
+```{r}
+Frag_RNAMirounga<-split(RNAMirounga, ceiling(seq_along(RNAMirounga)/3))
+```
+
+Creamos un vector vacío para que se guarde la sec de proteínas
+Empleamos el siguiente Script para determinar la secuencia de aminácidos:
+
+```{r}
+ProtMirounga<-c()
+for (codon in Frag_RNAMirounga) {
+  
+  if (all(codon == F1) | all(codon == F2)) {
+    ProtMirounga<-c(ProtMirounga, "F")
+  } else if (all(codon == L1) | all(codon == L2) | all(codon == L3) | all(codon == L4) | all(codon == L5) | all(codon == L6)) {
+    ProtMirounga<-c(ProtMirounga, "L")
+  } else if (all(codon == I1) | all(codon == I2) | all(codon == I3)) {
+    ProtMirounga<-c(ProtMirounga, "I") 
+  } else if (all(codon == M1)) {
+    ProtMirounga<-c(ProtMirounga, "M")
+  } else if (all(codon == V1) | all(codon == V2) | all(codon == V3) | all(codon == V4)) {
+    ProtMirounga<-c(ProtMirounga, "V")
+  } else if (all(codon == S1) | all(codon == S2) | all(codon == S3) | all(codon == S4)) {
+    ProtMirounga<-c(ProtMirounga, "S")
+  } else if (all(codon == P1) | all(codon == P2) | all(codon == P3) | all(codon == P4)) {
+    ProtMirounga<-c(ProtMirounga, "P")
+  } else if (all(codon == T1) | all(codon == T2) | all(codon == T3) | all(codon == T4)) {
+    ProtMirounga<-c(ProtMirounga, "T")
+  } else if (all(codon == A1) | all(codon == A2) | all(codon == A3) | all(codon == A4)) {
+    ProtMirounga<-c(ProtMirounga, "A")
+  } else if (all(codon == Y1) | all(codon == Y2)) {
+    ProtMirounga<-c(ProtMirounga, "Y")
+  } else if (all(codon == STOP1) | all(codon == STOP2) | all(codon == STOP3)) {
+    ProtMirounga<-c(ProtMirounga, "STOP")
+  } else if (all(codon == H1) | all(codon == H2)) {
+    ProtMirounga<-c(ProtMirounga, "H")
+  } else if (all(codon == Q1) | all(codon == Q2)) {
+    ProtMirounga<-c(ProtMirounga, "Q")
+  } else if (all(codon == N1) | all(codon == N2)) {
+    ProtMirounga<-c(ProtMirounga, "N")
+  } else if (all(codon == K1) | all(codon == K2)) {
+    ProtMirounga<-c(ProtMirounga, "K")
+  } else if (all(codon == D1) | all(codon == D2)) {
+    ProtMirounga<-c(ProtMirounga, "D")
+  } else if (all(codon == E1) | all(codon == E2)) {
+    ProtMirounga<-c(ProtMirounga, "E")
+  } else if (all(codon == C1) | all(codon == C2)) {
+    ProtMirounga<-c(ProtMirounga, "C")
+  } else if (all(codon == W1)) {
+    ProtMirounga<-c(ProtMirounga, "W")
+  } else if (all(codon == R1) | all(codon == R2) | all(codon == R3) | all(codon == R4) | all(codon == R5) | all(codon == R6)) {
+    ProtMirounga<-c(ProtMirounga, "R")
+  } else if (all(codon == S1) | all(codon == S2)) {
+    ProtMirounga<-c(ProtMirounga, "S")
+  } else if (all(codon == G1) | all(codon == G2) | all(codon == G3) | all(codon == G4)) {
+    ProtMirounga<-c(ProtMirounga, "G")
+  } else {
+    ProtMirounga<-c(ProtMirounga, codon)
+  }
+  
+}
+
+ProtMirounga
+```
+
+Abrimos la paquetería correspondiente para transformar y guardar nuestros datos de la secuencia de proteínas. En un formato necesario, como es FASTA.
+
+```{r}
+library(gridExtra)
+library(datasets)
+library(seqinr)
+setwd("03_Output/Processed data/") ##Nos posicionamos en la carpeta correspondiente, de salida de datos
+write.fasta(sequences = ProtMirounga,names = "Mirounga_MyD88",file.out="MyD88_aa_NES.fasta")
+dev.off()
+```
+
+## Localizar sitios de restricción
+
+*Ejercicio a resolver*: A partir de una secuencia de al menos 1000 pb ubicar la posición y longitud de cada palindromo inverso en la cadena.
+El palindromo inverso: serán secuencias que tienen la misma secuencia en su complemento(de dercha a izquierda).
+
+Primero cargamos una secuencia de 1000 pb:
+
+```{r}
+library(Biostrings)
+Bacillus<-readDNAStringSet("01_Raw_Data/Bacillus_pseudomycoides.fasta")
+Bacillus
+
+Bac_matrix<-as.matrix(Bacillus)
+Sec_Bacillus<-as.vector(Bac_matrix)
+length(Sec_Bacillus)
+```
+
+Primero necesitamos la cadena complementaria (C-G y A-T), yo usé lo siguiente. Además, buscamos la posición de las bases y después un reemplazo por el complementario.
+
+```{r}
+Adenin<-which(Sec_Bacillus =="A")
+Adenin
+Timin<-which(Sec_Bacillus =="T")
+Timin
+Citocin<-which(Sec_Bacillus =="C")
+Citocin
+Guanin<-which(Sec_Bacillus =="G")
+Guanin
+
+Complement<-replace(Sec_Bacillus,Adenin,"T")
+Complement<-replace(Complement,Timin,"A")
+Complement<-replace(Complement,Citocin,"G")
+Complement<-replace(Complement,Guanin,"C")
+```
+
+Guardamos en un objeto esto:
+
+```{r}
+Complement
+```
+
+Para hacer una comparación con la cadena principal, reacomodar la cadena complementaria de final a inicio
+```{r}
+ReversoC<-Complement[1000:1]
+ReversoC
+```
+
+Ahora hay que buscar los palindromos, con la siguiente función:
+
+```{r}
+Posicion<-1
+Palindromo4<-c()
+
+for (Posicion in 1:length(Sec_Bacillus)) {
+  if (all(Sec_Bacillus[Posicion:(Posicion+3)]==ReversoC[Posicion:(Posicion+3)])) {
+    Palindromo4<-c(Palindromo4, Posicion)
+  }
+  Posicion<-Posicion +1
+}
+```
+
+Aquí vemos el número de palindromos, las posiciones y las secuencias
+
+```{r}
+Palindromo4_Número<-length(Palindromo4)
+Palindromo4_Número
+
+Posiciónes_Palindromos4<-Palindromo4
+Posiciónes_Palindromos4
+
+Sec_Bacillus[117:120]
+Sec_Bacillus[881:884]
+
+```
+
+Si sólo existen un límitado número de palindromos de tamaño 4, como el ejemplo, sólo podríamos buscar en esas posiciones algunos con tamaño mayor. O aplicar el comando anterior y adicionar para 5 y hasta 12.
+Aquí únicamente haré una comparación simple, porque sólo tengo 2.
+
+```{r}
+Posiciónes_Palindromos4
+```
+
+Marca 117 y 881, y esas buscaré con una comparación simple para ver si son iguales para palindromos de 5
+
+```{r}
+all(Sec_Bacillus[117:121]==ReversoC[117:121])
+all(Sec_Bacillus[881:885]==ReversoC[881:885])
+```
+
+Ambas son falsas, así que no podremos continuar si sólo tenemos estos 
+
+
+## Secuencias consenso
+
+*Ejercicio a resolver*: A partir de 10 secuencias de 1000 pb en una matriz, generar secuencia consenso y, una cadena de consenso y una matriz de perfiles para la colección.
+
+Primero cargamos las secuencia de 1000 pb (fueron tomadas del NCBI y cortadas a los primero 1000pb), yo les puse su nombre común.
+
+```{r}
+library(Biostrings)
+Bear<-readDNAStringSet("01_Raw_Data/Bear.fasta")
+names(Bear)<-c("Bear")
+Canis<-readDNAStringSet("01_Raw_Data/Canis.fasta")
+names(Canis)<-c("Canis")
+Castor<-readDNAStringSet("01_Raw_Data/Castor.fasta")
+names(Castor)<-c("Castor")
+Zebra<-readDNAStringSet("01_Raw_Data/FishZebra.fasta")
+names(Zebra)<-c("ZebraF")
+Gallus<-readDNAStringSet("01_Raw_Data/Gallus.fasta")
+names(Gallus)<-c("Gallus")
+Human<-readDNAStringSet("01_Raw_Data/Human.fasta")
+names(Human)<-c("Human")
+Monkey<-readDNAStringSet("01_Raw_Data/Monkey.fasta")
+names(Monkey)<-c("Monkey")
+Mouse<-readDNAStringSet("01_Raw_Data/Mouse.fasta")
+names(Mouse)<-c("Mouse")
+Perca<-readDNAStringSet("01_Raw_Data/Perca.fasta")
+names(Perca)<-c("Perca")
+Pig<-readDNAStringSet("01_Raw_Data/Pig.fasta")
+names(Pig)<-c("Pig")
+```
+
+Transformamos cada secuencia en una matriz, ya que es difícil trabajar con la otra clase de información:
+
+```{r}
+Bear_M<-as.matrix(Bear)
+Canis_M<-as.matrix(Canis)
+Castor_M<-as.matrix(Castor)
+Zebra_M<-as.matrix(Zebra)
+Gallus_M<-as.matrix(Gallus)
+Human_M<-as.matrix(Human)
+Monkey_M<-as.matrix(Monkey)
+Mouse_M<-as.matrix(Mouse)
+Perca_M<-as.matrix(Perca)
+Pig_M<-as.matrix(Pig)
+```
+
+Con la función rbind, combinamos todas las matrices en una sola.
+
+```{r}
+TLR1_matrix<-rbind(Bear_M,Canis_M,Castor_M,Zebra_M,Gallus_M,Human_M,Monkey_M,Mouse_M,Perca_M,Pig_M)
+```
+
+Con esta función verificamos las dimensiones de nuestra matriz
+```{r}
+dim(TLR1_matrix) 
+```
+
+Nos indica una matriz de 10 filas por 1000 columnas.
+
+Vamos a preguntar el número de bases que se repitan en cada columna.
+
+```{r}
+TLR1_matrixD<-as.data.frame(TLR1_matrix)
+```
+
+Vamos a usar el siguiente ciclo while para calcular la matriz de frecuencias de nucleótidos
+
+```{r}
+A_<-c()
+T_<-c()
+G_<-c()
+C_<-c()
+i<-1
+
+while (i <= 1000) {
+  Columna<-TLR1_matrixD[,i]
+  Columna
+  
+  if (sum((Columna == "A")) > 0) {
+    A_<-c(A_,sum(Columna == "A"))
+  } else {
+    A_<-c(A_,0)
+  }
+  
+  if (sum((Columna == "G")) > 0) {
+    G_<-c(G_,sum(Columna == "G"))
+  } else {
+    G_<-c(G_,0)
+  }
+
+  if (sum((Columna == "C")) > 0) {
+    C_<-c(C_,sum(Columna == "C"))
+  } else {
+    C_<-c(C_,0)
+  }
+  
+  if (sum((Columna == "T")) > 0) {
+    T_<-c(T_,sum(Columna == "T"))
+  } else {
+    T_<-c(T_,0)
+  }
+  
+  i<-i+1
+  
+}
+```
+
+Colocamos una sola matriz consenso
+
+```{r}
+Frequency_matrix<-rbind(A_,C_,G_,T_)
+Frequency_matrix
+```
+
+Ahora debemos colocar la secuencia consenso con lo siguiente:
+```{r}
+Consensus_Seq<-c()
+Variantes<-c() ##Si tenemos una base con la misma frecuencia
+Base_pos<-c() ##Que nos de la posición de esa variante
+i<-1
+
+while (i <= 1000) {
+  Col<-Frequency_matrix[,i]
+  Reng1<-Frequency_matrix[1,i]
+  Reng2<-Frequency_matrix[2,i]
+  Reng3<-Frequency_matrix[3,i]
+  Reng4<-Frequency_matrix[4,i]
+  
+  if (max(Col) == Reng1 & max(Col) == Reng2 & max(Col) == Reng3 & max(Col) == Reng4) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+    Variantes<-c(Variantes,"W")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng1 & max(Col) == Reng2 & max(Col) == Reng3) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+    Variantes<-c(Variantes,"X")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng1 & max(Col) == Reng4 & max(Col) == Reng3) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+    Variantes<-c(Variantes,"Z")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng2 & max(Col) == Reng3 & max(Col) == Reng4) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+    Variantes<-c(Variantes,"Z")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng1 & max(Col) == Reng2 & max(Col) == Reng4) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+    Variantes<-c(Variantes,"Y")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng1 & max(Col) == Reng2) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+    Variantes<-c(Variantes,"C")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng1 & max(Col) == Reng3) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+    Variantes<-c(Variantes,"G")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng1 & max(Col) == Reng4) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+    Variantes<-c(Variantes,"T")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng2 & max(Col) == Reng3) {
+    Consensus_Seq<-c(Consensus_Seq,"C")
+    Variantes<-c(Variantes,"G")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng2 & max(Col) == Reng4) {
+    Consensus_Seq<-c(Consensus_Seq,"C")
+    Variantes<-c(Variantes,"T")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng3 & max(Col) == Reng4) {
+    Consensus_Seq<-c(Consensus_Seq,"G")
+    Variantes<-c(Variantes,"T")
+    Base_pos<-c(Base_pos,i)
+  } else if (max(Col) == Reng1) {
+    Consensus_Seq<-c(Consensus_Seq,"A")
+  } else if (max(Col) == Reng2) {
+    Consensus_Seq<-c(Consensus_Seq,"C")
+  } else if (max(Col) == Reng3) {
+    Consensus_Seq<-c(Consensus_Seq,"G")
+  } else {
+    Consensus_Seq<-c(Consensus_Seq,"T")
+  }  
+    
+  i<-i+1
+  
+}
+
+Consensus_Seq
+```
+
+Podemos guardarlo para colocar en su momento las posiciones de variación
+
+```{r}
+names(Base_pos)<-Variantes
+Base_pos
+```
+
+Letras extra del alfabeto de nucleotidos:
+
+X = "C" o "G"
+Z = "G" o "T"
+X = "C" o "T"
+W = "C" o "G" o "T"
+
+Guardamos la información
+Abrimos la paquetería correspondiente para transformar y guardar nuestros datos de la secuencia de proteínas. En un formato necesario, como es FASTA.
+
+```{r}
+library(gridExtra)
+library(datasets)
+library(seqinr)
+setwd("03_Output/Processed data/") ##Nos posicionamos en la carpeta correspondiente, de salida de datos
+write.csv(Frequency_matrix, file = "Matriz_frecuencias.csv")
+write.fasta(sequences = Consensus_Seq,names = "Secuencia consenso",file.out="Sequence_consensus.fasta")
+write.csv(Base_pos, file = "Matriz_secundaria.csv")
+write.fasta(sequences = Base_pos,names = "Secuencia consenso secundaria",file.out="Sustitutciones_consenso.fasta")
+dev.off()
+```
+
+Construyamos un árbol a partir de las secuencias ya empleadas y la consenso, ya tenemos un archivo de esto en datos crudos.
+
+```{r}
+TLRs_animals<-readDNAStringSet("01_Raw_Data/TLR1Animals.fasta")
+TLRs_animals
+
+Idnomb<-c("Bear","Canis","Castor","Consenso","ZebraFish","Gallus","Homo","Macaca","Mus","Perca","Sus")
+names(TLRs_animals)<-Idnomb
+TLRs_animals
+
+library(msa)
+TLR1<- msa(TLRs_animals, "ClustalW")
+print(TLR1, show="alignment")
+print(TLR1, show="standardParams")
+
+###Construcción del árbol
+TLR1tree<-msaConvert(TLR1, type=c("seqinr::alignment"))
+
+library(seqinr)
+dClu<-dist.alignment(TLR1tree, matrix= c("identity"),gap = FALSE) ##genrar matriz de distancias
+dClu
+
+library(ape)
+TLRsarbol<-nj(dClu)
+plot(TLRsarbol, main="Árbol filogenético del receptor TLR1 en distintas especies")
+```
+
